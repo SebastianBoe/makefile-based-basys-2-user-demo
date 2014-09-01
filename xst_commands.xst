@@ -1,0 +1,4 @@
+set -tmpdir /tmp/projnav.tmp
+set -xsthdpdir xst
+elaborate
+-ifn build/source_files.prj
