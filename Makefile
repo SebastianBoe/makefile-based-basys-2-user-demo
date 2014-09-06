@@ -36,14 +36,23 @@ build/$(PROJECT_NAME).ngc: build/$(PROJECT_NAME).xst
 	 -ofn build/$(PROJECT_NAME).syr
 #	rm $(TOP_MODULE).lso # I don't get why this file needs to exist.
 
+
+# Taken from Xilinx Command Line Tools User Guide. Copyrighted Xilinx.
+#
+# NGDBuild reads in a netlist file in EDIF or NGC format and creates a
+# Xilinx® Native Generic Database (NGD) file that contains a logical
+# description of the design in terms of logic elements, such as AND
+# gates, OR gates, LUTs, flip-flops, and RAMs.
 build/$(PROJECT_NAME).ngd: build/$(PROJECT_NAME).ngc
 	ngdbuild \
 	$(PROJECT_NAME) \
 	-sd build \
 	-dd build \
+	-quiet \
 	-p $(FPGA_MODEL) \
 	-uc src/$(PROJECT_NAME).ucf \
-	-intstyle xflow
+	-intstyle xflow \
+	build/$(PROJECT_NAME).ngd
 
 clean:
 	rm -rf build/* xst _xmsgs $(TOP_MODULE).lso
