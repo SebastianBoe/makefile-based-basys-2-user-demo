@@ -1,15 +1,16 @@
 PROJECT_NAME = Basys2UserDemo
 FPGA_MODEL = xc3s250e-cp132-5
 TOP_MODULE = Basys2UserDemo
-VHDL_SOURCE_FILES = $(wildcard src/*.vhd)
+
+HDL_FILES = $(wildcard src/*.vhd) $(wildcard src/*.v)
 
 .PHONY: default
 default: build/$(PROJECT_NAME).ngd
 
-# TODO: require build dir. 
+# TODO: have the Makefile create the build dir. 
 # Generate the prj file, which is sort of like
 # a list of all the source files that you intend to use.
-build/$(PROJECT_NAME).prj: $(VHDL_SOURCE_FILES)
+build/$(PROJECT_NAME).prj: $(HDL_SOURCE_FILES)
 	{ find src/ -name '*.vhd' -printf "vhdl work %p\n"; \
 	  find src/ -name '*.v'   -printf "verilog work %p\n"; } \
 	> build/$(PROJECT_NAME).prj
@@ -41,7 +42,7 @@ build/$(PROJECT_NAME).ngd: build/$(PROJECT_NAME).ngc
 	-sd build \
 	-dd build \
 	-p $(FPGA_MODEL) \
-	-uc $(PROJECT_NAME).ucf \
+	-uc src/$(PROJECT_NAME).ucf \
 	-intstyle xflow
 
 clean:
