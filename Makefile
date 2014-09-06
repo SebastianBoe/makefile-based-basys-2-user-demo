@@ -7,7 +7,6 @@ HDL_FILES = $(wildcard src/*.vhd) $(wildcard src/*.v)
 .PHONY: default
 default: build/$(PROJECT_NAME).ngd
 
-# TODO: have the Makefile create the build dir. 
 # Generate the prj file, which is sort of like
 # a list of all the source files that you intend to use.
 build/$(PROJECT_NAME).prj: $(HDL_SOURCE_FILES)
@@ -18,7 +17,7 @@ build/$(PROJECT_NAME).prj: $(HDL_SOURCE_FILES)
 # I tried using sed, and even the C preprocessor (big mistake) to
 # generate this file. But I have concluded that simply echoing it is
 # the best way to do this.
-build/$(PROJECT_NAME).xst: build/$(PROJECT_NAME).prj
+build/$(PROJECT_NAME).scr: build/$(PROJECT_NAME).prj
 	echo "run                           " >  $@
 	echo "-ifn build/$(PROJECT_NAME).prj" >> $@
 	echo "-ofn build/$(PROJECT_NAME).ngc" >> $@
@@ -30,12 +29,14 @@ build/$(PROJECT_NAME).xst: build/$(PROJECT_NAME).prj
 	echo "-work_lib work                " >> $@
 	echo >> $@
 
-build/$(PROJECT_NAME).ngc: build/$(PROJECT_NAME).xst
+build/$(PROJECT_NAME).ngc: build/$(PROJECT_NAME).scr
 	xst \
-	 -ifn build/$(PROJECT_NAME).xst\
-	 -ofn build/$(PROJECT_NAME).syr
-#	rm $(TOP_MODULE).lso # I don't get why this file needs to exist.
-
+	 -ifn build/$(PROJECT_NAME).scr \
+	 -ofn build/$(PROJECT_NAME).srp
+#	xst creates a bunch of files and the doc doesn't appear to
+#	allow a build directory to exist. Since our usage of xst is
+#	very simple I think it is fine to just rm the unwanted files
+	rm -r $(TOP_MODULE).lso _xmsgs xst
 
 # Taken from Xilinx Command Line Tools User Guide. Copyrighted Xilinx.
 #
@@ -53,6 +54,7 @@ build/$(PROJECT_NAME).ngd: build/$(PROJECT_NAME).ngc
 	-uc src/$(PROJECT_NAME).ucf \
 	-intstyle xflow \
 	build/$(PROJECT_NAME).ngd
+	rm -r _xmsgs xlnx_auto_0_xdb
 
 clean:
 	rm -rf build/* xst _xmsgs $(TOP_MODULE).lso
