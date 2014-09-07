@@ -1,11 +1,26 @@
 PROJECT_NAME = Basys2UserDemo
+
 FPGA_MODEL = xc3s250e-cp132-5
+
+# Multithreading the map command. It varies from fpga to fpga if this
+# can be enabled. This is a bit ugly, but the map command will not
+# accept -mt off so to conditionally support mutlithreading we have to
+# conditionally create the command line option "-mt on " or "".  TODO:
+# find a more idiomatic way of doing this.
+MULTITHREADED_MAP = off 
+ifeq ($(MULTITHREADED_MAP), on) 
+	MUTLITHREADED_MAP_CMD_LINE_OPTION=-mt on
+else
+	MUTLITHREADED_MAP_CMD_LINE_OPTION=
+endif
+
+
 TOP_MODULE = Basys2UserDemo
 
 HDL_FILES = $(wildcard src/*.vhd) $(wildcard src/*.v)
 
 .PHONY: default
-default: build/native_generic_database.ngd
+default: build/native_circuit_description.ncd
 
 # Generate the prj file, which is sort of like
 # a list of all the source files that you intend to use.
@@ -20,7 +35,7 @@ build/project.prj: $(HDL_FILES)
 build/xst_script.xst: build/project.prj
 	echo "run                           " >  $@
 	echo "-ifn build/project.prj" >> $@
-	echo "-ofn build/xst_output.ngc" >> $@
+	echo "-ofn build/$(PROJECT_NAME).ngc" >> $@
 	echo "-p $(FPGA_MODEL)              " >> $@
 	echo "-top $(TOP_MODULE)            " >> $@
 	echo "-opt_level 2                  " >> $@
@@ -29,7 +44,7 @@ build/xst_script.xst: build/project.prj
 	echo "-work_lib work                " >> $@
 	echo >> $@
 
-build/xst_output.ngc: build/xst_script.xst
+build/$(PROJECT_NAME).ngc: build/xst_script.xst
 	xst \
 	 -ifn build/xst_script.xst \
 	 -ofn build/$(PROJECT_NAME).srp
@@ -44,7 +59,7 @@ build/xst_output.ngc: build/xst_script.xst
 # Xilinx® Native Generic Database (NGD) file that contains a logical
 # description of the design in terms of logic elements, such as AND
 # gates, OR gates, LUTs, flip-flops, and RAMs.
-build/native_generic_database.ngd: build/xst_output.ngc src/user_constraints_file.ucf
+build/native_generic_database.ngd: build/$(PROJECT_NAME).ngc src/user_constraints_file.ucf
 	ngdbuild \
 	$(PROJECT_NAME) \
 	-sd build \
@@ -78,8 +93,14 @@ build/native_generic_database.ngd: build/xst_output.ngc src/user_constraints_fil
 # and routed using the PAR program.
 
 #Also builds a ncd file
-# build/physical_constraints_file.pcf: build/native_generic_database.ngd
-# 	map 
+build/native_circuit_description.ncd: build/native_generic_database.ngd
+	map \
+	-intstyle xflow \
+	$(MUTLITHREADED_MAP_CMD_LINE_OPTION) \
+	-p $(FPGA_MODEL) \
+	-o build/native_circuit_design.ncd \
+	build/native_generic_database.ngd \
+	build/physical_constraints_file.pcf
 
 clean:
 	rm -rf build/*
