@@ -37,7 +37,7 @@ default: build/design.ncd
 # Generate the prj file, which is sort of like
 # a list of all the source files that you intend to use.
 build/project.prj: $(HDL_FILES)
-	{ find src/ -name '*.vhd' -printf "vhdl work %p\n"; \
+	@{ find src/ -name '*.vhd' -printf "vhdl work %p\n"; \
 	  find src/ -name '*.v'   -printf "verilog work %p\n"; } \
 	> build/project.prj
 
@@ -45,27 +45,28 @@ build/project.prj: $(HDL_FILES)
 # generate this file. But I have concluded that simply echoing it is
 # the best way to do this.
 build/xst_script.xst: build/project.prj
-	echo "run                           " >  $@
-	echo "-ifn build/project.prj        " >> $@
-	echo "-ofn build/$(PROJECT_NAME).ngc" >> $@
-	echo "-p $(FPGA_MODEL)              " >> $@
-	echo "-top $(TOP_MODULE)            " >> $@
-	echo "-opt_level 2                  " >> $@
-	echo "-ofmt NGC                     " >> $@
-	echo "-keep_hierarchy No            " >> $@
-	echo "-work_lib work                " >> $@
-	echo >> $@
+	@echo "run                           " >  $@
+	@echo "-ifn build/project.prj        " >> $@
+	@echo "-ofn build/design.ngc         " >> $@
+	@echo "-p $(FPGA_MODEL)              " >> $@
+	@echo "-top $(TOP_MODULE)            " >> $@
+	@echo "-opt_level 2                  " >> $@
+	@echo "-ofmt NGC                     " >> $@
+	@echo "-keep_hierarchy No            " >> $@
+	@echo "-work_lib work                " >> $@
+	@echo >> $@
 
-build/$(PROJECT_NAME).ngc: build/xst_script.xst
+build/design.ngc: build/xst_script.xst
 	xst \
 	 -ifn build/xst_script.xst \
-	 -ofn build/$(PROJECT_NAME).srp
+	 -ofn build/$(PROJECT_NAME).srp \
+	-intstyle silent
 #	xst creates a bunch of files and the doc doesn't appear to
 #	allow a build directory to exist. Since our usage of xst is
 #	very simple I think it is fine to just rm the unwanted files
-	rm -r $(TOP_MODULE).lso _xmsgs xst
+	@rm -r $(TOP_MODULE).lso _xmsgs xst
 
-build/native_generic_database.ngd: build/$(PROJECT_NAME).ngc src/user_constraints_file.ucf
+build/native_generic_database.ngd: build/design.ngc src/user_constraints_file.ucf
 	ngdbuild \
 	$(PROJECT_NAME) \
 	-sd build \
@@ -85,7 +86,10 @@ build/design.ncd: build/native_generic_database.ngd
 	-o build/design.ncd \
 	build/native_generic_database.ngd \
 	build/physical_constraints_file.pcf
+	rm -r \
+	xilinx_device_details.xml \
+	Basys2UserDemo_map.xrpt \
+	_xmsgs/
 
 clean:
 	rm -rf build/*
-
