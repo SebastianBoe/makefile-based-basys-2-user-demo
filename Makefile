@@ -83,12 +83,22 @@ build/design.ncd: build/native_generic_database.ngd
 	$(MUTLITHREADED_MAP_CMD_LINE_OPTION) \
 	-p $(FPGA_MODEL) \
 	-o build/design.ncd \
+	-timing \
 	build/native_generic_database.ngd \
 	build/physical_constraints_file.pcf
 	@rm -r \
 	xilinx_device_details.xml \
 	Basys2UserDemo_map.xrpt \
 	_xmsgs/
+
+build/bitstream.bit: build/design.ncd
+	bitgen \
+	-intstyle silent \
+	-f src/$(PROJECT_NAME).ut \
+	$< \
+	$@ \
+	build/physical_constraints_file.pcf
+
 
 clean:
 	rm -rf build/*
