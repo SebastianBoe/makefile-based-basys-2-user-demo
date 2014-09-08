@@ -1,6 +1,13 @@
-PROJECT_NAME = Basys2UserDemo
+# The reader is assumed to either know what each Xilinx program does
+# or be willing to read the Xilinx "Command Line Tools User Guide.pdf"
+# and the "XST User Guide.pdf"
 
+####################################################################
+# Project-dependent variables 
+####################################################################
+PROJECT_NAME = Basys2UserDemo
 FPGA_MODEL = xc3s250e-cp132-5
+TOP_MODULE = Basys2UserDemo
 
 # Multithreading the map command. It varies from fpga to fpga if this
 # can be enabled. This is a bit ugly, but the map command will not
@@ -14,13 +21,18 @@ else
 	MUTLITHREADED_MAP_CMD_LINE_OPTION=
 endif
 
-
-TOP_MODULE = Basys2UserDemo
+#################################################################
+# Project independent variables
+#################################################################
 
 HDL_FILES = $(wildcard src/*.vhd) $(wildcard src/*.v)
 
+#################################################################
+# Makefile body
+#################################################################
+
 .PHONY: default
-default: build/native_circuit_description.ncd
+default: build/design.ncd
 
 # Generate the prj file, which is sort of like
 # a list of all the source files that you intend to use.
@@ -34,7 +46,7 @@ build/project.prj: $(HDL_FILES)
 # the best way to do this.
 build/xst_script.xst: build/project.prj
 	echo "run                           " >  $@
-	echo "-ifn build/project.prj" >> $@
+	echo "-ifn build/project.prj        " >> $@
 	echo "-ofn build/$(PROJECT_NAME).ngc" >> $@
 	echo "-p $(FPGA_MODEL)              " >> $@
 	echo "-top $(TOP_MODULE)            " >> $@
@@ -53,12 +65,6 @@ build/$(PROJECT_NAME).ngc: build/xst_script.xst
 #	very simple I think it is fine to just rm the unwanted files
 	rm -r $(TOP_MODULE).lso _xmsgs xst
 
-# From the Xilinx Command Line Tools User Guide. Copyrighted Xilinx.
-#
-# NGDBuild reads in a netlist file in EDIF or NGC format and creates a
-# Xilinx® Native Generic Database (NGD) file that contains a logical
-# description of the design in terms of logic elements, such as AND
-# gates, OR gates, LUTs, flip-flops, and RAMs.
 build/native_generic_database.ngd: build/$(PROJECT_NAME).ngc src/user_constraints_file.ucf
 	ngdbuild \
 	$(PROJECT_NAME) \
@@ -71,36 +77,15 @@ build/native_generic_database.ngd: build/$(PROJECT_NAME).ngc src/user_constraint
 	build/native_generic_database.ngd
 	rm -r _xmsgs xlnx_auto_0_xdb
 
-# From the Xilinx Command Line Tools User Guide. Copyrighted Xilinx.
-
-# The MAP program maps a logical design to a Xilinx® FPGA. The input
-# to MAP is an NGD file, which is generated using the NGDBuild
-# program. The NGD file contains a logical description of the design
-# that includes both the hierarchical components used to develop the
-# design and the lower level Xilinx primitives. The NGD file also
-# contains any number of NMC (macro library) files, each of which
-# contains the definition of a physical macro. Finally, depending on
-# the options used, MAP places the design.
-
-# MAP first performs a logical DRC (Design Rule Check) on the design
-# in the NGD file.  MAP then maps the design logic to the components
-# (logic cells, I/O cells, and other components) in the target Xilinx
-# FPGA.
-
-# The output from MAP is an NCD (Native Circuit Description) file a
-# physical representation of the design mapped to the components in
-# the targeted Xilinx FPGA.  The mapped NCD file can then be placed
-# and routed using the PAR program.
-
-#Also builds a ncd file
-build/native_circuit_description.ncd: build/native_generic_database.ngd
+build/design.ncd: build/native_generic_database.ngd
 	map \
 	-intstyle xflow \
 	$(MUTLITHREADED_MAP_CMD_LINE_OPTION) \
 	-p $(FPGA_MODEL) \
-	-o build/native_circuit_design.ncd \
+	-o build/design.ncd \
 	build/native_generic_database.ngd \
 	build/physical_constraints_file.pcf
 
 clean:
 	rm -rf build/*
+
