@@ -1,3 +1,11 @@
+A port of the Basys2 User Demo Xilinx ISE project to a 
+Makefile based build system.
+
+It strives to be generic as fas as Xilinx FPGA-projects go and to
+generate as many Xilinx-required build files as possible.
+Being generic may allow me to use it as a base for new projects 
+and generating files like the .prj file is just common sense.
+
 Project structure
 
 src 
