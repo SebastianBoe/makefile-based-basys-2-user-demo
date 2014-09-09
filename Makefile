@@ -25,13 +25,13 @@ endif
 # Project independent variables
 #################################################################
 HDL_FILES = $(wildcard src/*.vhd) $(wildcard src/*.v)
-
+INTSTYLE = silent
 #################################################################
 # Makefile body
 #################################################################
 
 .PHONY: default
-default: build/design.ncd
+default: build/bitfile.bit
 
 # Generate the prj file, which is sort of like
 # a list of all the source files that you intend to use.
@@ -59,10 +59,8 @@ build/$(PROJECT_NAME).ngc: build/xst_script.xst
 	xst \
 	 -ifn build/xst_script.xst \
 	 -ofn build/$(PROJECT_NAME).srp \
-	 -intstyle silent
-#	xst creates a bunch of files and the doc doesn't appear to
-#	allow a build directory to exist. Since our usage of xst is
-#	very simple I think it is fine to just rm the unwanted files
+	 -intstyle $(INTSTYLE)
+
 	@rm -r $(TOP_MODULE).lso _xmsgs xst
 
 build/native_generic_database.ngd: build/$(PROJECT_NAME).ngc src/user_constraints_file.ucf
@@ -71,34 +69,44 @@ build/native_generic_database.ngd: build/$(PROJECT_NAME).ngc src/user_constraint
 	-sd build \
 	-dd build \
 	-uc src/user_constraints_file.ucf \
-	-intstyle silent \
+	-intstyle $(INTSTYLE) \
 	-quiet \
 	$(PROJECT_NAME) \
 	build/native_generic_database.ngd > build/ngdbuild.log
+
 	@rm -r _xmsgs xlnx_auto_0_xdb
 
 build/design.ncd: build/native_generic_database.ngd
 	map \
-	-intstyle silent \
+	-intstyle $(INTSTYLE) \
 	$(MUTLITHREADED_MAP_CMD_LINE_OPTION) \
 	-p $(FPGA_MODEL) \
 	-o build/design.ncd \
 	-timing \
 	build/native_generic_database.ngd \
 	build/physical_constraints_file.pcf
-	@rm -r \
-	xilinx_device_details.xml \
-	Basys2UserDemo_map.xrpt \
-	_xmsgs/
 
-build/bitstream.bit: build/design.ncd
+	@rm -r xilinx_device_details.xml Basys2UserDemo_map.xrpt _xmsgs/
+
+build/design_routed.ncd: build/design.ncd
+	par \
+	$(MUTLITHREADED_MAP_CMD_LINE_OPTION) \
+	-intstyle $(INTSTYLE) \
+	build/design.ncd \
+	$@ \
+	build/physical_constraints_file.pcf
+
+	@rm Basys2UserDemo_par.xrpt
+
+build/bitfile.bit: build/design_routed.ncd
 	bitgen \
-	-intstyle silent \
+	-intstyle $(INTSTYLE) \
 	-f src/$(PROJECT_NAME).ut \
 	$< \
 	$@ \
 	build/physical_constraints_file.pcf
 
+	@rm -r xilinx_device_details.xml _xmsgs/
 
 clean:
 	rm -rf build/*
