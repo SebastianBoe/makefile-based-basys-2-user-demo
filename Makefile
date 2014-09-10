@@ -31,7 +31,7 @@ INTSTYLE = silent
 #################################################################
 
 .PHONY: default
-default: build/bitfile.bit
+default: build/programming.log
 
 # Generate the prj file, which is sort of like
 # a list of all the source files that you intend to use.
@@ -107,6 +107,13 @@ build/bitfile.bit: build/design_routed.ncd
 	build/physical_constraints_file.pcf
 
 	@rm -r xilinx_device_details.xml _xmsgs/
+
+build/programming.log: build/bitfile.bit
+	echo "Y" '#Say yes to a prompt I dont understand yet' | \
+	djtgcfg prog \
+	-d Basys2 \
+	--index 0 \
+	--file $< > $@
 
 clean:
 	rm -rf build/*
