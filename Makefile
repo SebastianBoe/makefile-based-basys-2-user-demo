@@ -49,9 +49,8 @@ build/xst_script.xst: build/project.prj
 	@echo "-ofn build/$(PROJECT_NAME).ngc" >> $@
 	@echo "-p $(FPGA_MODEL)              " >> $@
 	@echo "-top $(TOP_MODULE)            " >> $@
-	@echo "-opt_level 2                  " >> $@
+	@echo "-opt_level 1                  " >> $@
 	@echo "-ofmt NGC                     " >> $@
-	@echo "-keep_hierarchy No            " >> $@
 	@echo "-work_lib work                " >> $@
 	@echo >> $@
 
@@ -80,6 +79,7 @@ build/design.ncd: build/native_generic_database.ngd
 	map \
 	-intstyle $(INTSTYLE) \
 	$(MUTLITHREADED_MAP_CMD_LINE_OPTION) \
+	-ol std \
 	-p $(FPGA_MODEL) \
 	-o build/design.ncd \
 	-timing \
@@ -91,6 +91,10 @@ build/design.ncd: build/native_generic_database.ngd
 build/design_routed.ncd: build/design.ncd
 	par \
 	$(MUTLITHREADED_MAP_CMD_LINE_OPTION) \
+	-k \
+	-p \
+	-w \
+	-ol std \
 	-intstyle $(INTSTYLE) \
 	build/design.ncd \
 	$@ \
