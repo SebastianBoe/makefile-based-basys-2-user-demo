@@ -8,6 +8,7 @@
 PROJECT_NAME = Basys2UserDemo
 FPGA_MODEL = xc3s250e-cp132-5
 TOP_MODULE = Basys2UserDemo
+BITFILE = $(PROJECT_NAME).bit
 
 # Multithreading the map command. It varies from fpga to fpga if this
 # can be enabled. This is a bit ugly, but the map command will not
@@ -30,22 +31,21 @@ INTSTYLE = silent
 # Makefile body
 #################################################################
 
-.PHONY: default
-default: build/programming.log
+.PHONY: all program bitfile
+all: program
 
 # Generate the prj file, which is sort of like
 # a list of all the source files that you intend to use.
 build/project.prj: $(HDL_FILES)
-	@{ find src/ -name '*.vhd' -printf "vhdl work %p\n"; \
-	  find src/ -name '*.v'   -printf "verilog work %p\n"; } \
-	> build/project.prj
+	@find src -name '*.vhd' -printf "vhdl work %p\n"  	>> $@
+	@find src -name '*.v'   -printf "verilog work %p\n" >> $@
 
 # I tried using sed, and even the C preprocessor (big mistake) to
 # generate this file. But I have concluded that simply echoing it is
 # the best way to do this.
 build/xst_script.xst: build/project.prj
 	@echo "run                           " >  $@
-	@echo "-ifn build/project.prj        " >> $@
+	@echo "-ifn $<        				 " >> $@
 	@echo "-ofn build/$(PROJECT_NAME).ngc" >> $@
 	@echo "-p $(FPGA_MODEL)              " >> $@
 	@echo "-top $(TOP_MODULE)            " >> $@
@@ -102,7 +102,7 @@ build/design_routed.ncd: build/design.ncd
 
 	@rm Basys2UserDemo_par.xrpt
 
-build/bitfile.bit: build/design_routed.ncd
+build/$(PROJECT_NAME).bit: build/design_routed.ncd
 	bitgen \
 	-intstyle $(INTSTYLE) \
 	-f src/$(PROJECT_NAME).ut \
@@ -112,12 +112,10 @@ build/bitfile.bit: build/design_routed.ncd
 
 	@rm -r xilinx_device_details.xml _xmsgs/
 
-build/programming.log: build/bitfile.bit
-	echo "Y" '#Say yes to a prompt I dont understand yet' | \
-	djtgcfg prog \
-	-d Basys2 \
-	--index 0 \
-	--file $< > $@
+bitfile: build/$(BITFILE)
+
+program: bitfile
+	djtgcfg prog -d Basys2 --index 0 --file build/$(BITFILE) > build/programming.log
 
 clean:
 	rm -rf build/*
